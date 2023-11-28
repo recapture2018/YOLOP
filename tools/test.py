@@ -39,9 +39,7 @@ def parse_args():
     parser.add_argument('--weights', nargs='+', type=str, default='/data2/zwt/wd/YOLOP/runs/BddDataset/detect_and_segbranch_whole/epoch-169.pth', help='model.pth path(s)')
     parser.add_argument('--conf_thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou_thres', type=float, default=0.6, help='IOU threshold for NMS')
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 def main():
     # set all the configurations
@@ -73,7 +71,7 @@ def main():
 
     model = get_net(cfg)
     print("finish build model")
-    
+
     # define loss function (criterion) and optimizer
     criterion = get_loss(cfg, device=device)
 
@@ -82,13 +80,13 @@ def main():
     # det_idx_range = [str(i) for i in range(0,25)]
     model_dict = model.state_dict()
     checkpoint_file = args.weights
-    logger.info("=> loading checkpoint '{}'".format(checkpoint_file))
+    logger.info(f"=> loading checkpoint '{checkpoint_file}'")
     checkpoint = torch.load(checkpoint_file)
     checkpoint_dict = checkpoint['state_dict']
     # checkpoint_dict = {k: v for k, v in checkpoint['state_dict'].items() if k.split(".")[1] in det_idx_range}
     model_dict.update(checkpoint_dict)
     model.load_state_dict(model_dict)
-    logger.info("=> loaded checkpoint '{}' ".format(checkpoint_file))
+    logger.info(f"=> loaded checkpoint '{checkpoint_file}' ")
 
     model = model.to(device)
     model.gr = 1.0
@@ -101,14 +99,16 @@ def main():
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
-    valid_dataset = eval('dataset.' + cfg.DATASET.DATASET)(
+    valid_dataset = eval(f'dataset.{cfg.DATASET.DATASET}')(
         cfg=cfg,
         is_train=False,
         inputsize=cfg.MODEL.IMAGE_SIZE,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])
+        transform=transforms.Compose(
+            [
+                transforms.ToTensor(),
+                normalize,
+            ]
+        ),
     )
 
     # valid_loader = DataLoaderX(

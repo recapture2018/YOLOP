@@ -463,8 +463,7 @@ class CSPDarknet(nn.Module):
 def get_net(cfg, **kwargs): 
     # m_block_cfg = MCnet_share if cfg.MODEL.STRU_WITHSHARE else MCnet_no_share
     m_block_cfg = MCnet_no_share
-    model = MCnet(m_block_cfg, **kwargs)
-    return model
+    return MCnet(m_block_cfg, **kwargs)
 
 
 if __name__ == "__main__":

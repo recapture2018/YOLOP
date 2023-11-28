@@ -26,13 +26,14 @@ def create_logger(cfg, cfg_path, phase='train', rank=-1):
 
     if rank in [-1, 0]:
         time_str = time.strftime('%Y-%m-%d-%H-%M')
-        log_file = '{}_{}_{}.log'.format(cfg_path, time_str, phase)
+        log_file = f'{cfg_path}_{time_str}_{phase}.log'
         # set up tensorboard_log_dir
-        tensorboard_log_dir = Path(cfg.LOG_DIR) / dataset / model / \
-                                  (cfg_path + '_' + time_str)
+        tensorboard_log_dir = (
+            Path(cfg.LOG_DIR) / dataset / model / f'{cfg_path}_{time_str}'
+        )
         final_output_dir = tensorboard_log_dir
         if not tensorboard_log_dir.exists():
-            print('=> creating {}'.format(tensorboard_log_dir))
+            print(f'=> creating {tensorboard_log_dir}')
             tensorboard_log_dir.mkdir(parents=True)
 
         final_log_file = tensorboard_log_dir / log_file
@@ -54,24 +55,25 @@ def select_device(logger=None, device='', batch_size=None):
     cpu_request = device.lower() == 'cpu'
     if device and not cpu_request:  # if device requested other than 'cpu'
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
-        assert torch.cuda.is_available(), 'CUDA unavailable, invalid device %s requested' % device  # check availablity
+        assert (
+            torch.cuda.is_available()
+        ), f'CUDA unavailable, invalid device {device} requested'
 
     cuda = False if cpu_request else torch.cuda.is_available()
     if cuda:
-        c = 1024 ** 2  # bytes to MB
         ng = torch.cuda.device_count()
         if ng > 1 and batch_size:  # check that batch_size is compatible with device_count
             assert batch_size % ng == 0, 'batch-size %g not multiple of GPU count %g' % (batch_size, ng)
         x = [torch.cuda.get_device_properties(i) for i in range(ng)]
         s = f'Using torch {torch.__version__} '
+        c = 1024 ** 2
         for i in range(0, ng):
             if i == 1:
                 s = ' ' * len(s)
             if logger:
                 logger.info("%sCUDA:%g (%s, %dMB)" % (s, i, x[i].name, x[i].total_memory / c))
-    else:
-        if logger:
-            logger.info(f'Using torch {torch.__version__} CPU')
+    elif logger:
+        logger.info(f'Using torch {torch.__version__} CPU')
 
     if logger:
         logger.info('')  # skip a line

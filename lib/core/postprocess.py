@@ -93,10 +93,7 @@ def morphological_process(image, kernel_size=5, func_type=cv2.MORPH_CLOSE):
 
     kernel = cv2.getStructuringElement(shape=cv2.MORPH_ELLIPSE, ksize=(kernel_size, kernel_size))
 
-    # close operation fille hole
-    closing = cv2.morphologyEx(image, func_type, kernel, iterations=1)
-
-    return closing
+    return cv2.morphologyEx(image, func_type, kernel, iterations=1)
 
 def connect_components_analysis(image):
     """
@@ -132,7 +129,7 @@ def fitlane(mask, sel_labels, labels, stats):
         # samples_y = np.linspace(y, H-1, 30)
         # else:
         samples_y = np.linspace(y, y+h-1, 30)
-        
+
         samples_x = [np.where(labels[int(sample_y)]==t)[0] for sample_y in samples_y]
 
         if if_y(samples_x):
@@ -152,10 +149,6 @@ def fitlane(mask, sel_labels, labels, stats):
                 # draw_y = np.linspace(y, y+h-1, y+h-y)
                 draw_y = np.linspace(y, H-1, H-y)
             draw_x = np.polyval(func, draw_y)
-            # draw_y = draw_y[draw_x < W]
-            # draw_x = draw_x[draw_x < W]
-            draw_points = (np.asarray([draw_x, draw_y]).T).astype(np.int32)
-            cv2.polylines(mask, [draw_points], False, 1, thickness=15)
         else:
             # if ( + w - 1) >= 1280:
             samples_x = np.linspace(x, W-1, 30)
@@ -188,8 +181,10 @@ def fitlane(mask, sel_labels, labels, stats):
                 else:
                     draw_x = np.linspace(x, W-1, W-x)
             draw_y = np.polyval(func, draw_x)
-            draw_points = (np.asarray([draw_x, draw_y]).T).astype(np.int32)
-            cv2.polylines(mask, [draw_points], False, 1, thickness=15)
+        # draw_y = draw_y[draw_x < W]
+        # draw_x = draw_x[draw_x < W]
+        draw_points = (np.asarray([draw_x, draw_y]).T).astype(np.int32)
+        cv2.polylines(mask, [draw_points], False, 1, thickness=15)
     return mask
 
 def connect_lane(image, shadow_height=0):
@@ -200,21 +195,19 @@ def connect_lane(image, shadow_height=0):
     if shadow_height:
         image[:shadow_height] = 0
     mask = np.zeros((image.shape[0], image.shape[1]), np.uint8)
-    
+
     num_labels, labels, stats, centers = cv2.connectedComponentsWithStats(gray_image, connectivity=8, ltype=cv2.CV_32S)
     # ratios = []
     selected_label = []
-    
+
     for t in range(1, num_labels, 1):
         _, _, _, _, area = stats[t]
         if area > 400:
             selected_label.append(t)
-    if len(selected_label) == 0:
+    if not selected_label:
         return mask
-    else:
-        split_labels = [[label,] for label in selected_label]
-        mask_post = fitlane(mask, split_labels, labels, stats)
-        return mask_post
+    split_labels = [[label,] for label in selected_label]
+    return fitlane(mask, split_labels, labels, stats)
 
 
 

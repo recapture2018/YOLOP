@@ -30,7 +30,7 @@ class LoadImages:  # for inference
         elif os.path.isfile(p):
             files = [p]  # files
         else:
-            raise Exception('ERROR: %s does not exist' % p)
+            raise Exception(f'ERROR: {p} does not exist')
 
         images = [x for x in files if os.path.splitext(x)[-1].lower() in img_formats]
         videos = [x for x in files if os.path.splitext(x)[-1].lower() in vid_formats]
@@ -46,7 +46,7 @@ class LoadImages:  # for inference
         else:
             self.cap = None
         assert self.nf > 0, 'No images or videos found in %s. Supported formats are:\nimages: %s\nvideos: %s' % \
-                            (p, img_formats, vid_formats)
+                                (p, img_formats, vid_formats)
 
     def __iter__(self):
         self.count = 0
@@ -64,14 +64,11 @@ class LoadImages:  # for inference
             if not ret_val:
                 self.count += 1
                 self.cap.release()
-                if self.count == self.nf:  # last video
+                if self.count == self.nf:
                     raise StopIteration
-                else:
-                    path = self.files[self.count]
-                    self.new_video(path)
-                    ret_val, img0 = self.cap.read()
-            h0, w0 = img0.shape[:2]
-
+                path = self.files[self.count]
+                self.new_video(path)
+                ret_val, img0 = self.cap.read()
             self.frame += 1
             print('\n video %g/%g (%g/%g) %s: ' % (self.count + 1, self.nf, self.frame, self.nframes, path), end='')
 
@@ -80,9 +77,9 @@ class LoadImages:  # for inference
             self.count += 1
             img0 = cv2.imread(path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)  # BGR
             #img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
-            assert img0 is not None, 'Image Not Found ' + path
+            assert img0 is not None, f'Image Not Found {path}'
             print('image %g/%g %s: \n' % (self.count, self.nf, path), end='')
-            h0, w0 = img0.shape[:2]
+        h0, w0 = img0.shape[:2]
 
         # Padded resize
         img, ratio, pad = letterbox_for_img(img0, new_shape=self.img_size, auto=True)

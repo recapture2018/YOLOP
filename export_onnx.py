@@ -114,7 +114,7 @@ class MCnet(nn.Module):
         for i, block in enumerate(self.model):
             if block.from_ != -1:
                 x = cache[block.from_] if isinstance(block.from_, int) \
-                    else [x if j == -1 else cache[j] for j in
+                        else [x if j == -1 else cache[j] for j in
                           block.from_]  # calculate concat detect
             x = block(x)
             if i in self.seg_out_idx:  # save driving area segment result
@@ -122,11 +122,7 @@ class MCnet(nn.Module):
                 # out.append(m(x))
                 out.append(torch.sigmoid(x))
             if i == self.detector_index:
-                # det_out = x
-                if self.training:
-                    det_out = x
-                else:
-                    det_out = x[0]  # (torch.cat(z, 1), input_feat) if test
+                det_out = x if self.training else x[0]
             cache.append(x if block.index in self.save else None)
         return det_out, out[0], out[1]  # det, da, ll
         # (1,na*ny*nx*nl,no=2+2+1+nc=xy+wh+obj_conf+cls_prob), (1,2,h,w) (1,2,h,w)

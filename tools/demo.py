@@ -82,7 +82,7 @@ def detect(cfg,opt):
 
     inf_time = AverageMeter()
     nms_time = AverageMeter()
-    
+
     for i, (path, img, img_det, vid_cap,shapes) in tqdm(enumerate(dataset),total = len(dataset)):
         img = transform(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -105,7 +105,11 @@ def detect(cfg,opt):
         nms_time.update(t4-t3,img.size(0))
         det=det_pred[0]
 
-        save_path = str(opt.save_dir +'/'+ Path(path).name) if dataset.mode != 'stream' else str(opt.save_dir + '/' + "web.mp4")
+        save_path = (
+            str(f'{opt.save_dir}/{Path(path).name}')
+            if dataset.mode != 'stream'
+            else str(f'{opt.save_dir}/web.mp4')
+        )
 
         _, _, height, width = img.shape
         h,w,_=img_det.shape
@@ -120,7 +124,7 @@ def detect(cfg,opt):
         da_seg_mask = da_seg_mask.int().squeeze().cpu().numpy()
         # da_seg_mask = morphological_process(da_seg_mask, kernel_size=7)
 
-        
+
         ll_predict = ll_seg_out[:, :,pad_h:(height-pad_h),pad_w:(width-pad_w)]
         ll_seg_mask = torch.nn.functional.interpolate(ll_predict, scale_factor=int(1/ratio), mode='bilinear')
         _, ll_seg_mask = torch.max(ll_seg_mask, 1)
@@ -136,7 +140,7 @@ def detect(cfg,opt):
             for *xyxy,conf,cls in reversed(det):
                 label_det_pred = f'{names[int(cls)]} {conf:.2f}'
                 plot_one_box(xyxy, img_det , label=label_det_pred, color=colors[int(cls)], line_thickness=2)
-        
+
         if dataset.mode == 'images':
             cv2.imwrite(save_path,img_det)
 
@@ -151,12 +155,12 @@ def detect(cfg,opt):
                 h,w,_=img_det.shape
                 vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
             vid_writer.write(img_det)
-        
+
         else:
             cv2.imshow('image', img_det)
             cv2.waitKey(1)  # 1 millisecond
 
-    print('Results saved to %s' % Path(opt.save_dir))
+    print(f'Results saved to {Path(opt.save_dir)}')
     print('Done. (%.3fs)' % (time.time() - t0))
     print('inf : (%.4fs/frame)   nms : (%.4fs/frame)' % (inf_time.avg,nms_time.avg))
 

@@ -58,17 +58,12 @@ def draw_drivable(objects, ax):
     ax.axis('off')
 
 def filter_pic(data):
-    for obj in data:
-        if obj['category'].startswith('area'):
-            return True
-        else:
-            pass
-    return False
+    return any(obj['category'].startswith('area') for obj in data)
 
 def main(mode="train"):
-    image_dir = "bdd/bdd100k/images/100k/{}".format(mode)
-    val_dir = "bdd/bdd100k/labels/100k/{}".format(mode)
-    out_dir = 'bdd_seg_gt/{}'.format(mode)
+    image_dir = f"bdd/bdd100k/images/100k/{mode}"
+    val_dir = f"bdd/bdd100k/labels/100k/{mode}"
+    out_dir = f'bdd_seg_gt/{mode}'
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     val_list = os.listdir(val_dir)
@@ -90,7 +85,7 @@ def main(mode="train"):
         image_height = 720
         fig = plt.figure(figsize=(w, h), dpi=dpi)
         ax = fig.add_axes([0.0, 0.0, 1.0, 1.0], frameon=False)
-        out_path = os.path.join(out_dir, img_name+'.png')
+        out_path = os.path.join(out_dir, f'{img_name}.png')
         ax.set_xlim(0, image_width - 1)
         ax.set_ylim(0, image_height - 1)
         ax.invert_yaxis()
@@ -103,8 +98,6 @@ def main(mode="train"):
             draw_drivable(data, ax)
         fig.savefig(out_path, dpi=dpi)
         plt.close()
-    else:
-        pass
 
 if __name__ == '__main__':
     main(mode='train')

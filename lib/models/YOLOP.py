@@ -576,8 +576,7 @@ class MCnet(nn.Module):
 
 def get_net(cfg, **kwargs): 
     m_block_cfg = YOLOP
-    model = MCnet(m_block_cfg, **kwargs)
-    return model
+    return MCnet(m_block_cfg, **kwargs)
 
 
 if __name__ == "__main__":

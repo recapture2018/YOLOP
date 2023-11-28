@@ -48,24 +48,23 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='precision
 
         if n_p == 0 or n_l == 0:
             continue
-        else:
-            # Accumulate FPs and TPs
-            fpc = (1 - tp[i]).cumsum(0)
-            tpc = tp[i].cumsum(0)
+        # Accumulate FPs and TPs
+        fpc = (1 - tp[i]).cumsum(0)
+        tpc = tp[i].cumsum(0)
 
-            # Recall
-            recall = tpc / (n_l + 1e-16)  # recall curve
-            r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)  # r at pr_score, negative x, xp because xp decreases
+        # Recall
+        recall = tpc / (n_l + 1e-16)  # recall curve
+        r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)  # r at pr_score, negative x, xp because xp decreases
 
-            # Precision
-            precision = tpc / (tpc + fpc)  # precision curve
-            p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
+        # Precision
+        precision = tpc / (tpc + fpc)  # precision curve
+        p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
 
-            # AP from recall-precision curve
-            for j in range(tp.shape[1]):
-                ap[ci, j], mpre, mrec = compute_ap(recall[:, j], precision[:, j])
-                if plot and (j == 0):
-                    py.append(np.interp(px, mrec, mpre))  # precision at mAP@0.5
+        # AP from recall-precision curve
+        for j in range(tp.shape[1]):
+            ap[ci, j], mpre, mrec = compute_ap(recall[:, j], precision[:, j])
+            if plot and (j == 0):
+                py.append(np.interp(px, mrec, mpre))  # precision at mAP@0.5
 
     # Compute F1 score (harmonic mean of precision and recall)
     f1 = 2 * p * r / (p + r + 1e-16)
@@ -190,25 +189,20 @@ class SegmentationMetric(object):
         self.confusionMatrix = np.zeros((self.numClass,)*2)
 
     def pixelAccuracy(self):
-        # return all class overall pixel accuracy
-        # acc = (TP + TN) / (TP + TN + FP + TN)
-        acc = np.diag(self.confusionMatrix).sum() /  self.confusionMatrix.sum()
-        return acc
+        return np.diag(self.confusionMatrix).sum() /  self.confusionMatrix.sum()
         
     def lineAccuracy(self):
         Acc = np.diag(self.confusionMatrix) / (self.confusionMatrix.sum(axis=1) + 1e-12)
         return Acc[1]
 
     def classPixelAccuracy(self):
-        # return each category pixel accuracy(A more accurate way to call it precision)
-        # acc = (TP) / TP + FP
-        classAcc = np.diag(self.confusionMatrix) / (self.confusionMatrix.sum(axis=0) + 1e-12)
-        return classAcc
+        return np.diag(self.confusionMatrix) / (
+            self.confusionMatrix.sum(axis=0) + 1e-12
+        )
 
     def meanPixelAccuracy(self):
         classAcc = self.classPixelAccuracy()
-        meanAcc = np.nanmean(classAcc)
-        return meanAcc
+        return np.nanmean(classAcc)
 
     def meanIntersectionOverUnion(self):
         # Intersection = TP Union = TP + FP + FN
@@ -217,8 +211,7 @@ class SegmentationMetric(object):
         union = np.sum(self.confusionMatrix, axis=1) + np.sum(self.confusionMatrix, axis=0) - np.diag(self.confusionMatrix)
         IoU = intersection / union
         IoU[np.isnan(IoU)] = 0
-        mIoU = np.nanmean(IoU)
-        return mIoU
+        return np.nanmean(IoU)
     
     def IntersectionOverUnion(self):
         intersection = np.diag(self.confusionMatrix)
@@ -233,8 +226,7 @@ class SegmentationMetric(object):
         mask = (imgLabel >= 0) & (imgLabel < self.numClass)
         label = self.numClass * imgLabel[mask] + imgPredict[mask]
         count = np.bincount(label, minlength=self.numClass**2)
-        confusionMatrix = count.reshape(self.numClass, self.numClass)
-        return confusionMatrix
+        return count.reshape(self.numClass, self.numClass)
 
     def Frequency_Weighted_Intersection_over_Union(self):
         # FWIOU =     [(TP+FN)/(TP+FP+TN+FN)] *[TP / (TP + FP + FN)]
@@ -242,8 +234,7 @@ class SegmentationMetric(object):
         iu = np.diag(self.confusionMatrix) / (
                 np.sum(self.confusionMatrix, axis=1) + np.sum(self.confusionMatrix, axis=0) -
                 np.diag(self.confusionMatrix))
-        FWIoU = (freq[freq > 0] * iu[freq > 0]).sum()
-        return FWIoU
+        return (freq[freq > 0] * iu[freq > 0]).sum()
 
 
     def addBatch(self, imgPredict, imgLabel):

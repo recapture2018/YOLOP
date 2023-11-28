@@ -84,8 +84,7 @@ class MultiHeadLoss(nn.Module):
             b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
             tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
 
-            n = b.shape[0]  # number of targets
-            if n:
+            if n := b.shape[0]:
                 nt += n  # cumulative targets
                 ps = pi[b, a, gj, gi]  # prediction subset corresponding to targets
 
@@ -138,12 +137,12 @@ class MultiHeadLoss(nn.Module):
         lseg_ll *= cfg.LOSS.LL_SEG_GAIN * self.lambdas[4]
         liou_ll *= cfg.LOSS.LL_IOU_GAIN * self.lambdas[5]
 
-        
-        if cfg.TRAIN.DET_ONLY or cfg.TRAIN.ENC_DET_ONLY or cfg.TRAIN.DET_ONLY:
+
+        if cfg.TRAIN.DET_ONLY or cfg.TRAIN.ENC_DET_ONLY:
             lseg_da = 0 * lseg_da
             lseg_ll = 0 * lseg_ll
             liou_ll = 0 * liou_ll
-            
+
         if cfg.TRAIN.SEG_ONLY or cfg.TRAIN.ENC_SEG_ONLY:
             lcls = 0 * lcls
             lobj = 0 * lobj
@@ -193,8 +192,7 @@ def get_loss(cfg, device):
         BCEcls, BCEobj = FocalLoss(BCEcls, gamma), FocalLoss(BCEobj, gamma)
 
     loss_list = [BCEcls, BCEobj, BCEseg]
-    loss = MultiHeadLoss(loss_list, cfg=cfg, lambdas=cfg.LOSS.MULTI_HEAD_LAMBDA)
-    return loss
+    return MultiHeadLoss(loss_list, cfg=cfg, lambdas=cfg.LOSS.MULTI_HEAD_LAMBDA)
 
 # example
 # class L1_Loss(nn.Module)

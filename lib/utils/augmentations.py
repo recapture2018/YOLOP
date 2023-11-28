@@ -74,15 +74,7 @@ def random_perspective(combination, targets=(), degrees=10, translate=.1, scale=
             gray = cv2.warpAffine(gray, M[:2], dsize=(width, height), borderValue=0)
             line = cv2.warpAffine(line, M[:2], dsize=(width, height), borderValue=0)
 
-    # Visualize
-    # import matplotlib.pyplot as plt
-    # ax = plt.subplots(1, 2, figsize=(12, 6))[1].ravel()
-    # ax[0].imshow(img[:, :, ::-1])  # base
-    # ax[1].imshow(img2[:, :, ::-1])  # warped
-
-    # Transform label coordinates
-    n = len(targets)
-    if n:
+    if n := len(targets):
         # warp points
         xy = np.ones((n * 4, 3))
         xy[:, :2] = targets[:, [1, 2, 3, 4, 1, 4, 3, 2]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1

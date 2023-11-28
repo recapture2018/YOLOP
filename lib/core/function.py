@@ -68,9 +68,7 @@ def train(cfg, train_loader, model, criterion, optimizer, scaler, epoch, num_bat
         data_time.update(time.time() - start)
         if not cfg.DEBUG:
             input = input.to(device, non_blocking=True)
-            assign_target = []
-            for tgt in target:
-                assign_target.append(tgt.to(device))
+            assign_target = [tgt.to(device) for tgt in target]
             target = assign_target
         with amp.autocast(enabled=device.type != 'cpu'):
             outputs = model(input)

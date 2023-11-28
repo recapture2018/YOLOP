@@ -15,11 +15,11 @@ def plot_img_and_mask(img, mask, index,epoch,save_dir):
             ax[i+1].set_title(f'Output mask (class {i+1})')
             ax[i+1].imshow(mask[:, :, i])
     else:
-        ax[1].set_title(f'Output mask')
+        ax[1].set_title('Output mask')
         ax[1].imshow(mask)
     plt.xticks([]), plt.yticks([])
     # plt.show()
-    plt.savefig(save_dir+"/batch_{}_{}_seg.png".format(epoch,index))
+    plt.savefig(f"{save_dir}/batch_{epoch}_{index}_seg.png")
 
 def show_seg_result(img, result, index, epoch, save_dir=None, is_ll=False,palette=None,is_demo=False,is_gt=False):
     # img = mmcv.imread(img)
@@ -35,14 +35,14 @@ def show_seg_result(img, result, index, epoch, save_dir=None, is_ll=False,palett
     assert palette.shape[0] == 3 # len(classes)
     assert palette.shape[1] == 3
     assert len(palette.shape) == 2
-    
+
     if not is_demo:
         color_seg = np.zeros((result.shape[0], result.shape[1], 3), dtype=np.uint8)
         for label, color in enumerate(palette):
             color_seg[result == label, :] = color
     else:
         color_area = np.zeros((result[0].shape[0], result[0].shape[1], 3), dtype=np.uint8)
-        
+
         # for label, color in enumerate(palette):
         #     color_area[result[0] == label, :] = color
 
@@ -60,16 +60,15 @@ def show_seg_result(img, result, index, epoch, save_dir=None, is_ll=False,palett
     img = cv2.resize(img, (1280,720), interpolation=cv2.INTER_LINEAR)
 
     if not is_demo:
-        if not is_gt:
+        if is_gt:
             if not is_ll:
-                cv2.imwrite(save_dir+"/batch_{}_{}_da_segresult.png".format(epoch,index), img)
+                cv2.imwrite(f"{save_dir}/batch_{epoch}_{index}_da_seg_gt.png", img)
             else:
-                cv2.imwrite(save_dir+"/batch_{}_{}_ll_segresult.png".format(epoch,index), img)
+                cv2.imwrite(f"{save_dir}/batch_{epoch}_{index}_ll_seg_gt.png", img)
+        elif not is_ll:
+            cv2.imwrite(f"{save_dir}/batch_{epoch}_{index}_da_segresult.png", img)
         else:
-            if not is_ll:
-                cv2.imwrite(save_dir+"/batch_{}_{}_da_seg_gt.png".format(epoch,index), img)
-            else:
-                cv2.imwrite(save_dir+"/batch_{}_{}_ll_seg_gt.png".format(epoch,index), img)  
+            cv2.imwrite(f"{save_dir}/batch_{epoch}_{index}_ll_segresult.png", img)
     return img
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=None):
@@ -87,8 +86,6 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):
         # cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
 
-if __name__ == "__main__":
-    pass
 # def plot():
 #     cudnn.benchmark = cfg.CUDNN.BENCHMARK
 #     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC

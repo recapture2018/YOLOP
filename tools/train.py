@@ -65,9 +65,7 @@ def parse_args():
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.6, help='IOU threshold for NMS')
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def main():

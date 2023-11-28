@@ -50,25 +50,23 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
     union = w1 * h1 + w2 * h2 - inter + eps
 
     iou = inter / union
-    if GIoU or DIoU or CIoU:
-        cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
-        ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
-        if CIoU or DIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
-            c2 = cw ** 2 + ch ** 2 + eps  # convex diagonal squared
-            rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 +
-                    (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4  # center distance squared
-            if DIoU:
-                return iou - rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi ** 2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
-                with torch.no_grad():
-                    alpha = v / ((1 + eps) - iou + v)
-                return iou - (rho2 / c2 + v * alpha)  # CIoU
-        else:  # GIoU https://arxiv.org/pdf/1902.09630.pdf
-            c_area = cw * ch + eps  # convex area
-            return iou - (c_area - union) / c_area  # GIoU
-    else:
+    if not GIoU and not DIoU and not CIoU:
         return iou  # IoU
+    cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
+    ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
+    if CIoU or DIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
+        c2 = cw ** 2 + ch ** 2 + eps  # convex diagonal squared
+        rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 +
+                (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4  # center distance squared
+        if DIoU:
+            return iou - rho2 / c2  # DIoU
+        v = (4 / math.pi ** 2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
+        with torch.no_grad():
+            alpha = v / ((1 + eps) - iou + v)
+        return iou - (rho2 / c2 + v * alpha)  # CIoU
+    else:  # GIoU https://arxiv.org/pdf/1902.09630.pdf
+        c_area = cw * ch + eps  # convex area
+        return iou - (c_area - union) / c_area  # GIoU
 
 
 def box_iou(box1, box2):
@@ -299,7 +297,7 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
                 color = colors[cls % len(colors)]
                 cls = names[cls] if names else cls
                 if labels or conf[j] > 0.25:  # 0.25 conf thresh
-                    label = '%s' % cls if labels else '%s %.1f' % (cls, conf[j])
+                    label = f'{cls}' if labels else '%s %.1f' % (cls, conf[j])
                     plot_one_box(box, mosaic, label=label, color=color, line_thickness=tl)
 
         # Draw image filename labels
@@ -372,23 +370,22 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='precision
 
         if n_p == 0 or n_l == 0:
             continue
-        else:
-            # Accumulate FPs and TPs
-            fpc = (1 - tp[i]).cumsum(0)
-            tpc = tp[i].cumsum(0)
+        # Accumulate FPs and TPs
+        fpc = (1 - tp[i]).cumsum(0)
+        tpc = tp[i].cumsum(0)
 
-            # Recall
-            recall = tpc / (n_l + 1e-16)  # recall curve
-            r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)  # negative x, xp because xp decreases
+        # Recall
+        recall = tpc / (n_l + 1e-16)  # recall curve
+        r[ci] = np.interp(-px, -conf[i], recall[:, 0], left=0)  # negative x, xp because xp decreases
 
-            # Precision
-            precision = tpc / (tpc + fpc)  # precision curve
-            p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
-            # AP from recall-precision curve
-            for j in range(tp.shape[1]):
-                ap[ci, j], mpre, mrec = compute_ap(recall[:, j], precision[:, j])
-                if plot and (j == 0):
-                    py.append(np.interp(px, mrec, mpre))  # precision at mAP@0.5
+        # Precision
+        precision = tpc / (tpc + fpc)  # precision curve
+        p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
+        # AP from recall-precision curve
+        for j in range(tp.shape[1]):
+            ap[ci, j], mpre, mrec = compute_ap(recall[:, j], precision[:, j])
+            if plot and (j == 0):
+                py.append(np.interp(px, mrec, mpre))  # precision at mAP@0.5
 
     # Compute F1 score (harmonic mean of precision and recall)
     f1 = 2 * p * r / (p + r + 1e-16)
@@ -429,22 +426,97 @@ def compute_ap(recall, precision):
     return ap, mpre, mrec
 
 def coco80_to_coco91_class():  # converts 80-index (val2014) to 91-index (paper)
-    # https://tech.amikelive.com/node-718/what-object-categories-labels-are-in-coco-dataset/
-    # a = np.loadtxt('data/coco.names', dtype='str', delimiter='\n')
-    # b = np.loadtxt('data/coco_paper.names', dtype='str', delimiter='\n')
-    # x1 = [list(a[i] == b).index(True) + 1 for i in range(80)]  # darknet to coco
-    # x2 = [list(b[i] == a).index(True) if any(b[i] == a) else None for i in range(91)]  # coco to darknet
-    x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34,
-         35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-         64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
-    return x
+    return [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        67,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+    ]
 
 def output_to_target(output):
     # Convert model output to target format [batch_id, class_id, x, y, w, h, conf]
     targets = []
     for i, o in enumerate(output):
-        for *box, conf, cls in o.cpu().numpy():
-            targets.append([i, cls, *list(*xyxy2xywh(np.array(box)[None])), conf])
+        targets.extend(
+            [i, cls, *list(*xyxy2xywh(np.array(box)[None])), conf]
+            for *box, conf, cls in o.cpu().numpy()
+        )
     return np.array(targets)
 
 def plot_pr_curve(px, py, ap, save_dir='.', names=()):

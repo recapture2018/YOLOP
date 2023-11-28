@@ -45,7 +45,7 @@ class HustDataset(AutoDriveDataset):
                 category = obj['category']
                 if category == "traffic light":
                     color = obj['attributes']['Traffic Light Color'][0]
-                    category = "tl_" + color
+                    category = f"tl_{color}"
                 if category in id_dict.keys():
                     x1 = float(obj['box2d']['x1'])
                     y1 = float(obj['box2d']['y1'])
@@ -57,7 +57,7 @@ class HustDataset(AutoDriveDataset):
                     gt[idx][0] = cls_id
                     box = convert((width, height), (x1, x2, y1, y2))
                     gt[idx][1:] = list(box)
-                
+
 
             rec = [{
                 'image': image_path,
